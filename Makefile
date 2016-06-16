@@ -28,9 +28,14 @@ debug: clean
 debug: CFLAGS += -DDEBUG -g
 debug: $(PRGS) $(LIB)
 
+## Create obj and bin directories if they don't exist
+$(ODIR):
+	mkdir $(ODIR)
+$(EDIR):
+	mkdir $(EDIR)
 
 ## Compile the utility library
-$(ODIR)/libcrypto.o: $(SDIR)/libcrypto.c
+$(ODIR)/libcrypto.o: $(SDIR)/libcrypto.c $(ODIR)
 	@echo $@
 	@$(CC) -c $< $(CFLAGS) -o $@
 $(LDIR)/$(LIBS): $(ODIR)/libcrypto.o
@@ -38,7 +43,7 @@ $(LDIR)/$(LIBS): $(ODIR)/libcrypto.o
 	@ar rcs $@ $^
 
 ## Compile the object files
-$(ODIR)/%.o : $(SDIR)/%.c
+$(ODIR)/%.o : $(SDIR)/%.c $(ODIR)
 	@if [ $@ != $(SDIR)/libcrypto.c ]; \
 	then echo $@; \
 		$(CC) -c $< $(CFLAGS) -o $@; \
@@ -46,7 +51,7 @@ $(ODIR)/%.o : $(SDIR)/%.c
 
 ## Compile the executables. Discludes library object file.
 OBJ = $(patsubst $(EDIR)/%,$(ODIR)/%.o,$@)
-$(PRGS): $(OBJS)
+$(PRGS): $(OBJS) $(EDIR)
 	@if [ $@ != $(EDIR)/libcrypto ]; \
 	then echo $@; \
 		$(CC) $(OBJ) $(LDFLAGS) -o $@; \

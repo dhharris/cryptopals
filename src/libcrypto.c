@@ -18,6 +18,102 @@ void print_byte_buffer(uint8_t *buf, size_t len, const char *name)
         putchar('\n');
 }
 
+/*
+ * Utility function to convert hex character representation to their
+ * nibble (4 bit) values
+ */
+uint8_t nibble_from_char(char c)
+{
+        if(c >= '0' && c <= '9') return c - '0';
+        if(c >= 'a' && c <= 'f') return c - 'a' + 10;
+        if(c >= 'A' && c <= 'F') return c - 'A' + 10;
+        return 255;
+}
+
+static char byte_map[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+                          'a', 'b', 'c', 'd', 'e', 'f'};
+static int bm_len = sizeof(byte_map);
+
+/*
+ * Utility function to convert nibbles (4 bit values) into a hex
+ * character representation
+ */
+char nibble_to_char(uint8_t nibble)
+{
+        if (nibble < bm_len)
+                return byte_map[nibble];
+        return '*';
+}
+
+/*
+ * Convert a string of characters representing a hex buffer into a series
+ * of bytes of that real value
+ */
+uint8_t *hextobytes(char *inhex)
+{
+        uint8_t *bytes;
+        uint8_t *p;
+        int len, i;
+
+        len = strlen(inhex) / 2;
+        bytes = malloc(len + 1);
+        for (i = 0, p = (uint8_t*)inhex; i < len; ++i) {
+                bytes[i] =
+                        (nibble_from_char(*p) << 4) | (nibble_from_char(*(p + 1)));
+                p += 2;
+        }
+        bytes[len] = 0;
+        return bytes;
+}
+
+/*
+ * Convert a buffer of binary values into a hex string representation
+ */
+char *bytestohex(uint8_t *buf, size_t len)
+{
+        char *ret;
+        size_t i;
+
+        ret = malloc(len * 2 + 1);
+
+        for (i = 0; i < len; ++i) {
+                ret[i * 2] = nibble_to_char(buf[i] >> 4);
+                ret[i * 2 + 1] = nibble_to_char(buf[i] & 0x0f);
+        }
+        ret[len * 2] = 0;
+        return ret;
+}
+
+/*
+ * Returns the XOR combination of two equal length byte buffers a and b
+ * The results are placed in a new buffer that must be free'd
+ */
+uint8_t *xor_bytes(uint8_t *a, uint8_t *b, size_t len)
+{
+        uint8_t *ret = malloc(len);
+        size_t i;
+
+        for (i = 0; i < len; ++i)
+                ret[i] = a[i]^b[i];
+
+        return ret;
+}
+
+/*
+ * Performs a XOR combination of two hex strings a and b
+ * len is the length of the strings
+ */
+char *xor_hexstr(char *a, char *b, size_t len) {
+        uint8_t *abuf = hextobytes(a);
+        uint8_t *bbuf = hextobytes(b);
+        uint8_t *res = xor_bytes(abuf, bbuf, len / 2);
+        char *ret = bytestohex(res, len / 2);
+        free(abuf);
+        free(bbuf);
+        free(res);
+        return ret;
+}
+
 static char encoding_table[] =
         {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
         'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
@@ -56,39 +152,6 @@ char *base64_encode(uint8_t *data, size_t len)
 
         encoded_data[outlen] = 0;
         return encoded_data;
-}
-
-/*
- * Utility function to convert hex character representation to their
- * nibble (4 bit) values
- */
-uint8_t nibble_from_char(char c)
-{
-        if(c >= '0' && c <= '9') return c - '0';
-        if(c >= 'a' && c <= 'f') return c - 'a' + 10;
-        if(c >= 'A' && c <= 'F') return c - 'A' + 10;
-        return 255;
-}
-
-/*
- * Convert a string of characters representing a hex buffer into a series
- * of bytes of that real value
- */
-uint8_t *hextobytes(char *inhex)
-{
-        uint8_t *bytes;
-        uint8_t *p;
-        int len, i;
-
-        len = strlen(inhex) / 2;
-        bytes = malloc(len + 1);
-        for (i = 0, p = (uint8_t*)inhex; i < len; ++i) {
-                bytes[i] =
-                        (nibble_from_char(*p) << 4) | (nibble_from_char(*(p + 1)));
-                p += 2;
-        }
-        bytes[len] = 0;
-        return bytes;
 }
 
 
